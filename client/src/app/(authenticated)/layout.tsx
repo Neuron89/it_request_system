@@ -18,7 +18,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   return (
     <div className="min-h-screen bg-page">
       <Sidebar />
-      <main className="ml-[260px] p-6">{children}</main>
+      <main className="ml-[260px] p-6 flex justify-center"><div className="w-full max-w-5xl">{children}</div></main>
     </div>
   );
 }

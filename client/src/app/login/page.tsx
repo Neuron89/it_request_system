@@ -10,27 +10,34 @@ export default function LoginPage() {
   const { login, user, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [selectedEmail, setSelectedEmail] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [testUsers, setTestUsers] = useState<{ email: string; name: string; role: string }[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   useEffect(() => {
-    if (!loading && user) router.replace('/dashboard');
+    if (!loading && user) router.replace(user.role === 'it_admin' ? '/dashboard' : '/requests');
   }, [user, loading, router]);
 
   useEffect(() => {
-    getTestUsers().then(setTestUsers).catch(() => {});
+    getTestUsers()
+      .then((users) => {
+        setTestUsers(users);
+        if (users.length > 0) setSelectedEmail(users[0].email);
+      })
+      .catch((err) => setError('Cannot connect to server: ' + err.message))
+      .finally(() => setLoadingUsers(false));
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleLogin() {
+    if (!selectedEmail) return;
     setError('');
     setSubmitting(true);
     try {
-      await login(email, password);
-      router.replace('/dashboard');
+      await login(selectedEmail, 'admin123!');
+      const selectedUser = testUsers.find((u) => u.email === selectedEmail);
+      router.replace(selectedUser?.role === 'it_admin' ? '/dashboard' : '/requests');
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -67,37 +74,37 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-lg text-sm font-semibold" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
-              {error}
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input-field" placeholder="your.email@facility.local" required />
+        {error && (
+          <div className="mb-4 p-3 rounded-lg text-sm font-semibold" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
+            {error}
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input-field" placeholder="Enter your password" required />
-          </div>
-          <button type="submit" disabled={submitting} className="btn-primary w-full">
-            {submitting ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+        )}
 
-        {testUsers.length > 0 && (
-          <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--border-default)' }}>
-            <p className="text-xs font-bold text-theme-muted uppercase tracking-wider mb-2">Quick Login (Dev)</p>
-            <div className="space-y-1">
-              {testUsers.map((u) => (
-                <button key={u.email} onClick={() => { setEmail(u.email); setPassword('admin123!'); }}
-                  className="block w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-card-hover-surface">
-                  <span className="font-semibold text-theme-primary">{u.name}</span>
-                  <span className="text-theme-muted ml-2">{u.role}</span>
-                </button>
-              ))}
+        {loadingUsers ? (
+          <p className="text-sm text-theme-muted">Connecting to server...</p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Select User</label>
+              <select value={selectedEmail} onChange={(e) => setSelectedEmail(e.target.value)} className="input-field">
+                {testUsers.map((u) => (
+                  <option key={u.email} value={u.email}>
+                    {u.name} ({u.role.replace(/_/g, ' ')})
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {selectedEmail && (
+              <div className="p-3 rounded-lg text-sm" style={{ background: 'var(--bg-card-hover)' }}>
+                <span className="text-theme-muted">Logging in as: </span>
+                <span className="font-semibold text-theme-primary">{selectedEmail}</span>
+              </div>
+            )}
+
+            <button onClick={handleLogin} disabled={submitting || !selectedEmail} className="btn-accent w-full">
+              {submitting ? 'Signing in...' : 'Sign In'}
+            </button>
           </div>
         )}
       </div>

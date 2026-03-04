@@ -31,7 +31,6 @@ export default function NewRequestPage() {
   const [hwLaptopFeatures, setHwLaptopFeatures] = useState<string[]>([]);
   const [hwDescription, setHwDescription] = useState('');
   const [hwQuantity, setHwQuantity] = useState(1);
-  const [hwBrand, setHwBrand] = useState('');
   const [hwCurrentEquipment, setHwCurrentEquipment] = useState('');
 
   // Software fields
@@ -85,7 +84,6 @@ export default function NewRequestPage() {
         laptop_features: hwCategory === 'laptop' ? hwLaptopFeatures : undefined,
         description: hwDescription,
         quantity: hwQuantity,
-        preferred_brand: hwBrand || undefined,
         current_equipment: hwCurrentEquipment || undefined,
       };
     } else if (requestType === 'software') {
@@ -245,15 +243,9 @@ export default function NewRequestPage() {
                     <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Description</label>
                     <textarea value={hwDescription} onChange={(e) => setHwDescription(e.target.value)} className="input-field" rows={2} placeholder="Describe what you need..." required />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Quantity</label>
-                      <input type="number" min={1} value={hwQuantity} onChange={(e) => setHwQuantity(parseInt(e.target.value) || 1)} className="input-field" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Preferred Brand (optional)</label>
-                      <input type="text" value={hwBrand} onChange={(e) => setHwBrand(e.target.value)} className="input-field" placeholder="e.g., Dell, HP, Lenovo" />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Quantity</label>
+                    <input type="number" min={1} value={hwQuantity} onChange={(e) => setHwQuantity(parseInt(e.target.value) || 1)} className="input-field" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-theme-secondary mb-1.5">Current Equipment (optional)</label>

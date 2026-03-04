@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getDashboard } from '@/lib/api';
 import Link from 'next/link';
@@ -19,13 +20,15 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { token, user } = useAuth();
+  const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (user && user.role !== 'it_admin') { router.replace('/requests'); return; }
     if (!token) return;
     getDashboard(token).then(setData).catch(console.error).finally(() => setLoading(false));
-  }, [token]);
+  }, [token, user, router]);
 
   if (loading) return <div className="animate-fade-in-up"><div className="card"><p className="text-theme-muted">Loading...</p></div></div>;
 

@@ -24,7 +24,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Main',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon, roles: ['employee', 'manager', 'it_admin'] },
+      { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon, roles: ['it_admin'] },
       { href: '/requests/new', label: 'New Request', icon: PlusIcon, roles: ['employee', 'manager', 'it_admin'] },
       { href: '/requests', label: 'My Requests', icon: ListIcon, roles: ['employee', 'manager', 'it_admin'] },
     ],
