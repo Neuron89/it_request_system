@@ -5,10 +5,11 @@ import express from 'express';
 import cors from 'cors';
 
 import authRoutes from './routes/auth';
-import requestRoutes from './routes/requests';
+import ticketRoutes from './routes/tickets';
 import dashboardRoutes from './routes/dashboard';
 import usersRoutes from './routes/users';
 import departmentRoutes from './routes/departments';
+import categoryRoutes from './routes/categories';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '4020');
@@ -27,10 +28,12 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
-app.use('/api/requests', requestRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/requests', ticketRoutes); // back-compat
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/categories', categoryRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -50,7 +53,7 @@ process.on('unhandledRejection', (err) => console.error('Unhandled rejection:', 
 process.on('uncaughtException', (err) => console.error('Uncaught exception:', err));
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`IT Request API server running on http://0.0.0.0:${PORT}`);
+  console.log(`IT Ticketing API server running on http://0.0.0.0:${PORT}`);
 });
 
 export default app;

@@ -24,16 +24,31 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Main',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon, roles: ['it_admin'] },
-      { href: '/requests/new', label: 'New Request', icon: PlusIcon, roles: ['employee', 'manager', 'it_admin'] },
-      { href: '/requests', label: 'My Requests', icon: ListIcon, roles: ['employee', 'manager', 'it_admin'] },
+      { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon, roles: ['it_admin', 'manager'] },
+      { href: '/tickets', label: 'My Tickets', icon: ListIcon, roles: ['employee', 'manager', 'it_admin', 'hr'] },
+      { href: '/tickets/new', label: 'New Ticket', icon: PlusIcon, roles: ['employee', 'manager', 'it_admin', 'hr'] },
+    ],
+  },
+  {
+    label: 'HR',
+    items: [
+      { href: '/onboarding', label: 'Onboarding', icon: UsersIcon, roles: ['hr', 'it_admin'] },
+      { href: '/onboarding/new', label: 'New Hire Intake', icon: PlusIcon, roles: ['hr'] },
     ],
   },
   {
     label: 'Review',
     items: [
       { href: '/review', label: 'Pending Review', icon: ClockIcon, roles: ['manager', 'it_admin'] },
-      { href: '/requests?status=approved', label: 'Approved', icon: CheckIcon, roles: ['manager', 'it_admin'] },
+      { href: '/tickets?status=approved', label: 'Approved', icon: CheckIcon, roles: ['manager', 'it_admin'] },
+    ],
+  },
+  {
+    label: 'IT Workspace',
+    items: [
+      { href: '/tickets?mine=true', label: 'My Open', icon: ListIcon, roles: ['it_admin'] },
+      { href: '/tickets?overdue=true', label: 'Overdue', icon: ClockIcon, roles: ['it_admin'] },
+      { href: '/tickets?assignee=unassigned', label: 'Unassigned', icon: ListIcon, roles: ['it_admin'] },
     ],
   },
   {
@@ -58,7 +73,7 @@ export default function Sidebar() {
       {/* Brand */}
       <div className="px-5 py-5 flex items-center gap-3 border-b border-white/[0.06]">
         <div className="w-9 h-9 rounded-[10px] flex items-center justify-center font-extrabold text-sm flex-shrink-0" style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>IT</div>
-        <div className="text-white font-extrabold text-[1.1rem] tracking-tight">IT<span style={{ color: 'var(--accent)' }} className="font-semibold">Requests</span></div>
+        <div className="text-white font-extrabold text-[1.1rem] tracking-tight">IT<span style={{ color: 'var(--accent)' }} className="font-semibold">Tickets</span></div>
       </div>
 
       {/* Navigation */}

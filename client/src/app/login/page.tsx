@@ -6,6 +6,12 @@ import { useAuth } from '@/lib/auth-context';
 import { useTheme } from '@/lib/theme-context';
 import { getTestUsers } from '@/lib/api';
 
+function landingFor(role?: string) {
+  if (role === 'it_admin' || role === 'manager') return '/dashboard';
+  if (role === 'hr') return '/onboarding';
+  return '/tickets';
+}
+
 export default function LoginPage() {
   const { login, user, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -17,7 +23,7 @@ export default function LoginPage() {
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   useEffect(() => {
-    if (!loading && user) router.replace(user.role === 'it_admin' ? '/dashboard' : '/requests');
+    if (!loading && user) router.replace(landingFor(user.role));
   }, [user, loading, router]);
 
   useEffect(() => {
@@ -37,7 +43,7 @@ export default function LoginPage() {
     try {
       await login(selectedEmail, 'admin123!');
       const selectedUser = testUsers.find((u) => u.email === selectedEmail);
-      router.replace(selectedUser?.role === 'it_admin' ? '/dashboard' : '/requests');
+      router.replace(landingFor(selectedUser?.role));
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -57,8 +63,8 @@ export default function LoginPage() {
               IT
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-theme-primary">IT<span className="text-accent">Requests</span></h1>
-              <p className="text-xs text-theme-muted">Service Request Portal</p>
+              <h1 className="text-xl font-extrabold text-theme-primary">IT<span className="text-accent">Tickets</span></h1>
+              <p className="text-xs text-theme-muted">Ticketing & Onboarding Portal</p>
             </div>
           </div>
           <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-card-hover-surface transition-colors" title="Toggle theme">

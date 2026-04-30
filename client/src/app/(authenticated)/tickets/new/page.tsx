@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { createRequest } from '@/lib/api';
+import { createTicket } from '@/lib/api';
 
 const REQUEST_TYPES = [
   { value: 'hardware', label: 'Hardware', icon: '\uD83D\uDCBB', description: 'Laptops, monitors, peripherals' },
@@ -125,8 +125,8 @@ export default function NewRequestPage() {
     }
 
     try {
-      await createRequest(token, payload);
-      router.push('/requests');
+      await createTicket(token, payload);
+      router.push('/tickets');
     } catch (err: any) {
       setError(err.message || 'Failed to create request');
     } finally {

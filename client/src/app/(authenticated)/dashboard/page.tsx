@@ -4,18 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getDashboard } from '@/lib/api';
+import { STATUS_LABELS, STATUS_COLORS } from '@itr/shared';
 import Link from 'next/link';
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: '#94a3b8', submitted: '#3b82f6', manager_review: '#f59e0b', it_review: '#8b5cf6',
-  approved: '#22c55e', denied: '#ef4444', in_progress: '#06b6d4', completed: '#10b981', cancelled: '#6b7280',
-};
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Draft', submitted: 'Submitted', manager_review: 'Manager Review', it_review: 'IT Review',
-  approved: 'Approved', denied: 'Denied', in_progress: 'In Progress', completed: 'Completed', cancelled: 'Cancelled',
-};
 const TYPE_LABELS: Record<string, string> = {
-  hardware: 'Hardware', software: 'Software', permission: 'Permission', access: 'Access', other: 'Other',
+  hardware: 'Hardware', software: 'Software', permission: 'Permission',
+  access: 'Access', onboarding: 'Onboarding', other: 'Other',
 };
 
 export default function DashboardPage() {
@@ -25,12 +19,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user && user.role !== 'it_admin') { router.replace('/requests'); return; }
+    if (user && user.role === 'employee') { router.replace('/tickets'); return; }
+    if (user && user.role === 'hr') { router.replace('/onboarding'); return; }
     if (!token) return;
     getDashboard(token).then(setData).catch(console.error).finally(() => setLoading(false));
   }, [token, user, router]);
 
   if (loading) return <div className="animate-fade-in-up"><div className="card"><p className="text-theme-muted">Loading...</p></div></div>;
+
+  const isAdmin = user?.role === 'it_admin';
 
   return (
     <div className="animate-fade-in-up space-y-6">
@@ -39,32 +36,29 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-extrabold text-theme-primary">Dashboard</h1>
           <p className="text-sm text-theme-muted mt-1">Welcome back, {user?.name}</p>
         </div>
-        <Link href="/requests/new" className="btn-accent">New Request</Link>
+        <Link href="/tickets/new" className="btn-accent">New Ticket</Link>
       </div>
 
-      {/* Stats cards */}
-      {(user?.role === 'manager' || user?.role === 'it_admin') && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {user?.role === 'it_admin' && (
-            <div className="card">
-              <p className="text-sm text-theme-muted font-semibold">Pending IT Review</p>
-              <p className="text-3xl font-extrabold mt-1" style={{ color: '#8b5cf6' }}>{data?.pendingItReview || 0}</p>
-            </div>
-          )}
-          <div className="card">
-            <p className="text-sm text-theme-muted font-semibold">Pending Manager Review</p>
-            <p className="text-3xl font-extrabold mt-1" style={{ color: '#f59e0b' }}>{data?.pendingManagerReview || 0}</p>
-          </div>
-          <div className="card">
-            <p className="text-sm text-theme-muted font-semibold">Total Requests</p>
-            <p className="text-3xl font-extrabold mt-1 text-theme-primary">{Object.values(data?.statusCounts || {}).reduce((a: number, b: any) => a + b, 0)}</p>
-          </div>
+      {/* IT-admin headline cards */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <StatCard label="My Open" value={data?.myOpenTickets || 0} color="#3b82f6" href="/tickets?mine=true" />
+          <StatCard label="Overdue" value={data?.overdueCount || 0} color="#ef4444" href="/tickets?overdue=true" />
+          <StatCard label="Due This Week" value={data?.dueThisWeek || 0} color="#f59e0b" />
+          <StatCard label="Unassigned" value={data?.unassignedOpen || 0} color="#a855f7" href="/tickets?assignee=unassigned" />
+          <StatCard label="Pending IT Review" value={data?.pendingItReview || 0} color="#8b5cf6" href="/tickets?status=it_review" />
+        </div>
+      )}
+      {!isAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <StatCard label="Pending Manager Review" value={data?.pendingManagerReview || 0} color="#f59e0b" />
+          <StatCard label="Total Tickets" value={Object.values(data?.statusCounts || {}).reduce((a: number, b: any) => a + b, 0)} color="var(--accent)" />
         </div>
       )}
 
       {/* Status breakdown */}
       <div className="card">
-        <h2 className="text-lg font-bold text-theme-primary mb-4">Requests by Status</h2>
+        <h2 className="text-lg font-bold text-theme-primary mb-4">Tickets by Status</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Object.entries(data?.statusCounts || {}).map(([status, count]) => (
             <div key={status} className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'var(--bg-card-hover)' }}>
@@ -80,8 +74,8 @@ export default function DashboardPage() {
 
       {/* Type breakdown */}
       <div className="card">
-        <h2 className="text-lg font-bold text-theme-primary mb-4">Requests by Type</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <h2 className="text-lg font-bold text-theme-primary mb-4">Tickets by Type</h2>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           {Object.entries(data?.typeCounts || {}).map(([type, count]) => (
             <div key={type} className="text-center p-3 rounded-lg" style={{ background: 'var(--bg-card-hover)' }}>
               <p className="text-xs text-theme-muted">{TYPE_LABELS[type] || type}</p>
@@ -91,9 +85,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent requests */}
+      {/* Recent */}
       <div className="card">
-        <h2 className="text-lg font-bold text-theme-primary mb-4">Recent Requests</h2>
+        <h2 className="text-lg font-bold text-theme-primary mb-4">Recent Tickets</h2>
         {data?.recent?.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -101,20 +95,20 @@ export default function DashboardPage() {
                 <tr className="bg-table-head">
                   <th className="text-left px-4 py-3 text-theme-muted font-semibold">#</th>
                   <th className="text-left px-4 py-3 text-theme-muted font-semibold">Title</th>
-                  <th className="text-left px-4 py-3 text-theme-muted font-semibold">Type</th>
+                  <th className="text-left px-4 py-3 text-theme-muted font-semibold">Category</th>
                   <th className="text-left px-4 py-3 text-theme-muted font-semibold">Status</th>
+                  <th className="text-left px-4 py-3 text-theme-muted font-semibold">Assignee</th>
                   <th className="text-left px-4 py-3 text-theme-muted font-semibold">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {data.recent.map((r: any) => (
                   <tr key={r.id} className="border-t border-theme hover:bg-card-hover-surface transition-colors">
-                    <td className="px-4 py-3">
-                      <Link href={`/requests/${r.id}`} className="text-accent font-semibold hover:underline">{r.request_number}</Link>
-                    </td>
+                    <td className="px-4 py-3"><Link href={`/tickets/${r.id}`} className="text-accent font-semibold hover:underline">{r.request_number}</Link></td>
                     <td className="px-4 py-3 text-theme-primary font-medium">{r.title}</td>
-                    <td className="px-4 py-3"><span className="badge" style={{ background: 'var(--bg-card-hover)', color: 'var(--text-secondary)' }}>{TYPE_LABELS[r.request_type] || r.request_type}</span></td>
+                    <td className="px-4 py-3">{r.category_name && <span className="badge" style={{ background: `${r.category_color}20`, color: r.category_color }}>{r.category_name}</span>}</td>
                     <td className="px-4 py-3"><span className="badge" style={{ background: `${STATUS_COLORS[r.status]}20`, color: STATUS_COLORS[r.status] }}>{STATUS_LABELS[r.status] || r.status}</span></td>
+                    <td className="px-4 py-3 text-theme-secondary">{r.assignee_name || <span className="text-theme-faint italic">unassigned</span>}</td>
                     <td className="px-4 py-3 text-theme-muted">{new Date(r.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
@@ -122,9 +116,19 @@ export default function DashboardPage() {
             </table>
           </div>
         ) : (
-          <p className="text-theme-muted text-sm">No requests yet. <Link href="/requests/new" className="text-accent hover:underline">Create one</Link></p>
+          <p className="text-theme-muted text-sm">No tickets yet. <Link href="/tickets/new" className="text-accent hover:underline">Create one</Link></p>
         )}
       </div>
     </div>
   );
+}
+
+function StatCard({ label, value, color, href }: { label: string; value: number; color: string; href?: string }) {
+  const inner = (
+    <div className="card" style={{ borderTop: `3px solid ${color}` }}>
+      <p className="text-xs text-theme-muted font-semibold uppercase tracking-wider">{label}</p>
+      <p className="text-3xl font-extrabold mt-1" style={{ color }}>{value}</p>
+    </div>
+  );
+  return href ? <Link href={href} className="block hover:translate-y-[-2px] transition-transform">{inner}</Link> : inner;
 }

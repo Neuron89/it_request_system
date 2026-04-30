@@ -29,13 +29,28 @@ router.get('/', authenticate, authorize('it_admin'), async (_req: Request, res: 
 router.get('/managers', authenticate, async (_req: Request, res: Response) => {
   try {
     const managers = await db('users')
-      .where({ role: 'manager', is_active: true })
-      .orWhere({ role: 'it_admin', is_active: true })
+      .whereIn('role', ['manager', 'it_admin'])
+      .andWhere({ is_active: true })
       .select('id', 'name', 'email')
       .orderBy('name');
     res.json(managers);
   } catch (err) {
     console.error('Get managers error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Assignable users (IT only — for ticket assignment dropdowns)
+router.get('/assignable', authenticate, async (_req: Request, res: Response) => {
+  try {
+    const users = await db('users')
+      .whereIn('role', ['it_admin'])
+      .andWhere({ is_active: true })
+      .select('id', 'name', 'email')
+      .orderBy('name');
+    res.json(users);
+  } catch (err) {
+    console.error('Get assignable error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

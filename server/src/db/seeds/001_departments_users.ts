@@ -2,9 +2,10 @@ import type { Knex } from 'knex';
 import bcrypt from 'bcrypt';
 
 export async function seed(knex: Knex): Promise<void> {
-  await knex('request_history').del();
-  await knex('request_comments').del();
-  await knex('requests').del();
+  await knex('ticket_attachments').del();
+  await knex('ticket_history').del();
+  await knex('ticket_comments').del();
+  await knex('tickets').del();
   await knex('users').del();
   await knex('departments').del();
 
@@ -29,6 +30,16 @@ export async function seed(knex: Knex): Promise<void> {
     password_hash: hash,
     name: 'IT Admin',
     role: 'it_admin',
+    department_id: admin.id,
+    manager_id: null,
+  }).returning('id');
+
+  // HR
+  const [hr] = await knex('users').insert({
+    email: 'hr@facility.local',
+    password_hash: hash,
+    name: 'HR Coordinator',
+    role: 'hr',
     department_id: admin.id,
     manager_id: null,
   }).returning('id');

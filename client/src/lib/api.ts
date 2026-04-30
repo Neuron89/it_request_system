@@ -54,43 +54,65 @@ export async function getTestUsers() {
   return fetchApi<{ email: string; name: string; role: string }[]>('/auth/test-users');
 }
 
-// Requests
-export async function createRequest(token: string, data: any) {
-  return fetchApi<any>('/requests', { method: 'POST', body: JSON.stringify(data), token });
+// Tickets
+export async function createTicket(token: string, data: any) {
+  return fetchApi<any>('/tickets', { method: 'POST', body: JSON.stringify(data), token });
 }
 
-export async function getRequests(token: string, params?: Record<string, string>) {
+export async function getTickets(token: string, params?: Record<string, string>) {
   const query = params ? '?' + new URLSearchParams(params).toString() : '';
-  return fetchApi<{ data: any[]; total: number; page: number; limit: number; totalPages: number }>(`/requests${query}`, { token });
+  return fetchApi<{ data: any[]; total: number; page: number; limit: number; totalPages: number }>(`/tickets${query}`, { token });
 }
 
-export async function getRequest(token: string, id: number) {
-  return fetchApi<any>(`/requests/${id}`, { token });
+export async function getTicket(token: string, id: number) {
+  return fetchApi<any>(`/tickets/${id}`, { token });
+}
+
+export async function updateTicket(token: string, id: number, data: any) {
+  return fetchApi<any>(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify(data), token });
 }
 
 export async function managerReview(token: string, id: number, data: { decision: string; notes?: string }) {
-  return fetchApi<any>(`/requests/${id}/manager-review`, { method: 'POST', body: JSON.stringify(data), token });
+  return fetchApi<any>(`/tickets/${id}/manager-review`, { method: 'POST', body: JSON.stringify(data), token });
+}
+
+export async function submitOnboardingDetails(token: string, id: number, data: any) {
+  return fetchApi<any>(`/tickets/${id}/onboarding-details`, { method: 'POST', body: JSON.stringify(data), token });
 }
 
 export async function itReview(token: string, id: number, data: { decision: string; notes?: string }) {
-  return fetchApi<any>(`/requests/${id}/it-review`, { method: 'POST', body: JSON.stringify(data), token });
+  return fetchApi<any>(`/tickets/${id}/it-review`, { method: 'POST', body: JSON.stringify(data), token });
 }
 
-export async function updateRequestStatus(token: string, id: number, data: { status: string; comment?: string }) {
-  return fetchApi<any>(`/requests/${id}/status`, { method: 'PATCH', body: JSON.stringify(data), token });
+export async function updateTicketStatus(token: string, id: number, data: { status: string; comment?: string }) {
+  return fetchApi<any>(`/tickets/${id}/status`, { method: 'PATCH', body: JSON.stringify(data), token });
 }
 
-export async function cancelRequest(token: string, id: number) {
-  return fetchApi<any>(`/requests/${id}/cancel`, { method: 'POST', token });
+export async function cancelTicket(token: string, id: number) {
+  return fetchApi<any>(`/tickets/${id}/cancel`, { method: 'POST', token });
 }
 
-export async function addComment(token: string, id: number, comment: string) {
-  return fetchApi<any>(`/requests/${id}/comments`, { method: 'POST', body: JSON.stringify({ comment }), token });
+export async function addComment(token: string, id: number, comment: string, isInternal = false) {
+  return fetchApi<any>(`/tickets/${id}/comments`, {
+    method: 'POST', body: JSON.stringify({ comment, is_internal: isInternal }), token,
+  });
 }
+
+// Back-compat aliases (so old imports don't break during the rename roll-out)
+export const createRequest = createTicket;
+export const getRequests = getTickets;
+export const getRequest = getTicket;
+export const updateRequestStatus = updateTicketStatus;
+export const cancelRequest = cancelTicket;
 
 // Dashboard
 export async function getDashboard(token: string) {
   return fetchApi<any>('/dashboard', { token });
+}
+
+// Categories
+export async function getCategories(token: string) {
+  return fetchApi<{ id: number; name: string; color: string; icon?: string }[]>('/categories', { token });
 }
 
 // Users
@@ -100,6 +122,10 @@ export async function getUsers(token: string) {
 
 export async function getManagers() {
   return fetchApi<{ id: number; name: string; email: string }[]>('/users/managers');
+}
+
+export async function getAssignableUsers(token: string) {
+  return fetchApi<{ id: number; name: string; email: string }[]>('/users/assignable', { token });
 }
 
 // Departments

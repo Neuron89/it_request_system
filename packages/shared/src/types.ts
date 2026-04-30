@@ -1,4 +1,4 @@
-import type { RequestType, RequestStatus, Role, UrgencyLevel, HardwareCategory, PermissionType, AccessLevel } from './constants';
+import type { RequestType, RequestStatus, Role, UrgencyLevel, HardwareCategory, PermissionType, AccessLevel, EmploymentType, WorkLocation } from './constants';
 
 export interface User {
   id: number;
@@ -20,7 +20,16 @@ export interface Department {
   manager_id: number | null;
 }
 
-export interface BaseRequest {
+export interface TicketCategory {
+  id: number;
+  name: string;
+  color: string;
+  icon?: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface BaseTicket {
   id: number;
   request_number: string;
   requester_id: number;
@@ -32,20 +41,37 @@ export interface BaseRequest {
   urgency: UrgencyLevel;
   title: string;
   justification: string;
+
+  // Routing
   manager_id: number | null;
   manager_name?: string;
   manager_email?: string;
   manager_notes?: string;
   manager_decision_at?: string;
+  it_admin_id?: number | null;
+  it_admin_name?: string;
   it_admin_notes?: string;
   it_decision_at?: string;
+
+  // Ticketing fields
+  assignee_id?: number | null;
+  assignee_name?: string;
+  category_id?: number | null;
+  category_name?: string;
+  category_color?: string;
+  due_date?: string | null;
+  closed_at?: string | null;
+  resolution_notes?: string;
+
   created_at: string;
   updated_at: string;
 }
 
-export interface HardwareRequest extends BaseRequest {
+/** Backwards-compat alias — old code referred to BaseRequest. */
+export type BaseRequest = BaseTicket;
+
+export interface HardwareTicket extends BaseTicket {
   request_type: 'hardware';
-  hardware_category: HardwareCategory;
   hardware_specs: {
     laptop_size?: string;
     laptop_features?: string[];
@@ -56,7 +82,7 @@ export interface HardwareRequest extends BaseRequest {
   };
 }
 
-export interface SoftwareRequest extends BaseRequest {
+export interface SoftwareTicket extends BaseTicket {
   request_type: 'software';
   software_details: {
     software_name: string;
@@ -70,7 +96,7 @@ export interface SoftwareRequest extends BaseRequest {
   };
 }
 
-export interface PermissionRequest extends BaseRequest {
+export interface PermissionTicket extends BaseTicket {
   request_type: 'permission';
   permission_details: {
     permission_type: PermissionType;
@@ -83,7 +109,7 @@ export interface PermissionRequest extends BaseRequest {
   };
 }
 
-export interface AccessRequest extends BaseRequest {
+export interface AccessTicket extends BaseTicket {
   request_type: 'access';
   access_details: {
     access_type: 'shared_mailbox' | 'distribution_list' | 'teams_channel' | 'sharepoint_site' | 'network_drive' | 'other';
@@ -95,7 +121,50 @@ export interface AccessRequest extends BaseRequest {
   };
 }
 
-export interface OtherRequest extends BaseRequest {
+export interface OnboardingTicket extends BaseTicket {
+  request_type: 'onboarding';
+  onboarding_details: OnboardingDetails;
+}
+
+export interface OnboardingDetails {
+  full_name: string;
+  preferred_name?: string;
+  job_title: string;
+  department: string;
+  manager_email: string;
+  manager_name?: string;
+  start_date: string;
+  employment_type: EmploymentType;
+  work_location: WorkLocation;
+  office_location?: string;
+  personal_email?: string;
+  phone?: string;
+
+  // Equipment
+  needs_laptop: boolean;
+  laptop_preference?: '14_inch' | '16_inch' | 'desktop' | 'no_preference';
+  needs_monitor: boolean;
+  monitor_count?: number;
+  needs_phone: boolean;
+  needs_headset: boolean;
+  other_equipment?: string;
+
+  // Accounts / access
+  email_alias_preference?: string;
+  needs_m365: boolean;
+  needs_vpn: boolean;
+  software_needed: string[];
+  shared_mailboxes: string[];
+  distribution_lists: string[];
+  security_groups: string[];
+  network_drives: string[];
+
+  // Misc
+  similar_to_employee_email?: string;
+  notes?: string;
+}
+
+export interface OtherTicket extends BaseTicket {
   request_type: 'other';
   other_details: {
     category: string;
@@ -104,24 +173,40 @@ export interface OtherRequest extends BaseRequest {
   };
 }
 
-export type ITRequest = HardwareRequest | SoftwareRequest | PermissionRequest | AccessRequest | OtherRequest;
+export type Ticket = HardwareTicket | SoftwareTicket | PermissionTicket | AccessTicket | OnboardingTicket | OtherTicket;
 
-export interface RequestComment {
+/** Backwards-compat alias. */
+export type ITRequest = Ticket;
+
+export interface TicketComment {
   id: number;
-  request_id: number;
+  ticket_id: number;
   user_id: number;
   user_name: string;
   comment: string;
+  is_internal: boolean;
   created_at: string;
 }
 
-export interface RequestHistory {
+export interface TicketHistory {
   id: number;
-  request_id: number;
+  ticket_id: number;
   from_status: RequestStatus | null;
   to_status: RequestStatus;
   changed_by: number;
   changed_by_name: string;
   comment?: string;
+  created_at: string;
+}
+
+export interface TicketAttachment {
+  id: number;
+  ticket_id: number;
+  uploaded_by: number;
+  uploaded_by_name?: string;
+  filename: string;
+  mime_type?: string;
+  size_bytes?: number;
+  storage_path: string;
   created_at: string;
 }
