@@ -10,6 +10,7 @@ import dashboardRoutes from './routes/dashboard';
 import usersRoutes from './routes/users';
 import departmentRoutes from './routes/departments';
 import categoryRoutes from './routes/categories';
+import integrationRoutes from './routes/integration';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '4020');
@@ -34,6 +35,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/integration', integrationRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
