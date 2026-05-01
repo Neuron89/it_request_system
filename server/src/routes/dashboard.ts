@@ -8,15 +8,17 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     let baseQuery = db('tickets');
 
+    // Qualify columns with tickets.* — baseQuery is later cloned and joined with users,
+    // and users also has manager_id, which makes a bare 'manager_id' ambiguous.
     if (req.user!.role === 'employee') {
-      baseQuery = baseQuery.where('requester_id', req.user!.id);
+      baseQuery = baseQuery.where('tickets.requester_id', req.user!.id);
     } else if (req.user!.role === 'manager') {
       baseQuery = baseQuery.where(function() {
-        this.where('manager_id', req.user!.id).orWhere('requester_id', req.user!.id);
+        this.where('tickets.manager_id', req.user!.id).orWhere('tickets.requester_id', req.user!.id);
       });
     } else if (req.user!.role === 'hr') {
       baseQuery = baseQuery.where(function() {
-        this.where('requester_id', req.user!.id).orWhere('request_type', 'onboarding');
+        this.where('tickets.requester_id', req.user!.id).orWhere('tickets.request_type', 'onboarding');
       });
     }
 

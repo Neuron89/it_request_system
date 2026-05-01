@@ -24,6 +24,87 @@ function generateTokens(user: { id: number; email: string; name: string; role: s
   return { accessToken, refreshToken };
 }
 
+// POST /api/auth/sso-exchange — verifies a portal-issued SSO token and
+// returns access + refresh tokens, auto-creating the IT Request user row
+// if needed.
+router.post('/sso-exchange', async (req: Request, res: Response) => {
+  try {
+    const ssoSecret = process.env.PORTAL_SSO_SECRET;
+    if (!ssoSecret) {
+      res.status(503).json({ message: 'SSO not configured.' });
+      return;
+    }
+    const { ptoken } = req.body || {};
+    if (typeof ptoken !== 'string') {
+      res.status(400).json({ message: 'ptoken required' });
+      return;
+    }
+    let claims: { email: string; full_name?: string; portal_role?: string };
+    try {
+      claims = jwt.verify(ptoken, ssoSecret, {
+        issuer: 'nycoa-portal',
+        audience: 'it',
+      }) as typeof claims;
+    } catch {
+      res.status(401).json({ message: 'Invalid or expired SSO token.' });
+      return;
+    }
+    const email = String(claims.email || '').trim().toLowerCase();
+    if (!email) {
+      res.status(400).json({ message: 'SSO token missing email.' });
+      return;
+    }
+    const isPortalAdmin = claims.portal_role === 'admin';
+    let user = await db('users').where({ email }).first();
+    if (!user) {
+      const [created] = await db('users')
+        .insert({
+          email,
+          name: claims.full_name || email,
+          role: isPortalAdmin ? 'it_admin' : 'employee',
+          is_active: true,
+          password_hash: '!sso',
+        })
+        .returning('*');
+      user = created;
+    } else {
+      const updates: Record<string, unknown> = {};
+      if (!user.is_active) updates.is_active = true;
+      if (claims.full_name && user.name !== claims.full_name) updates.name = claims.full_name;
+      if (isPortalAdmin && user.role !== 'it_admin') updates.role = 'it_admin';
+      if (Object.keys(updates).length > 0) {
+        await db('users').where({ id: user.id }).update(updates);
+        user = { ...user, ...updates };
+      }
+    }
+    const tokens = generateTokens(user);
+    await db('users').where({ id: user.id }).update({ refresh_token: tokens.refreshToken });
+    const dept = user.department_id
+      ? await db('departments').where({ id: user.department_id }).first()
+      : null;
+    const manager = user.manager_id
+      ? await db('users').where({ id: user.manager_id }).select('id', 'name', 'email').first()
+      : null;
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        department: dept?.name || '',
+        manager_id: user.manager_id,
+        manager_name: manager?.name || '',
+        manager_email: manager?.email || '',
+        is_active: user.is_active,
+      },
+      tokens,
+    });
+  } catch (err) {
+    console.error('IT Request SSO exchange error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Login
 router.post('/login', async (req: Request, res: Response) => {
   try {
