@@ -4,8 +4,16 @@ export type RequestType = typeof REQUEST_TYPES[number];
 export const REQUEST_STATUSES = ['draft', 'submitted', 'manager_review', 'it_review', 'approved', 'denied', 'in_progress', 'waiting', 'completed', 'cancelled'] as const;
 export type RequestStatus = typeof REQUEST_STATUSES[number];
 
-export const ROLES = ['employee', 'manager', 'it_admin', 'hr'] as const;
+export const ROLES = ['employee', 'manager', 'it_admin', 'hr', 'ehs'] as const;
 export type Role = typeof ROLES[number];
+
+export const ROLE_LABELS: Record<Role, string> = {
+  employee: 'Employee',
+  manager: 'Manager',
+  it_admin: 'IT',
+  hr: 'HR',
+  ehs: 'EHS',
+};
 
 export const URGENCY_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
 export type UrgencyLevel = typeof URGENCY_LEVELS[number];

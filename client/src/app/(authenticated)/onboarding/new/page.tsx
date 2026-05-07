@@ -1,18 +1,71 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { createTicket } from '@/lib/api';
 
+const TEST_MANAGER_EMAIL = 'test-mgr@nycoa.test';
+const TEST_MANAGER_NAME = 'Test Manager';
+
+const FIRST_NAMES = ['Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Quinn', 'Avery', 'Sam', 'Drew', 'Pat', 'Reese'];
+const LAST_NAMES = ['Walker', 'Reyes', 'Nguyen', 'Patel', 'O’Brien', 'Carter', 'Foster', 'Hughes', 'Bennett', 'Murphy', 'Singh', 'Cole'];
+const TITLES = ['Process Engineer', 'Production Operator', 'QC Technician', 'Maintenance Tech', 'Warehouse Lead', 'Lab Analyst'];
+const DEPARTMENTS = ['Production', 'Quality Control', 'Maintenance', 'Warehouse', 'Laboratory', 'EHS'];
+const OFFICES = ['Shawsheen – 1st floor', 'Shawsheen – 2nd floor', 'NYCOA – main office', 'Bradford – plant floor'];
+const NOTES = [
+  'Replacing outgoing employee — needs same access.',
+  'Cross-training across two lines, expects to float.',
+  'Urgent backfill for upcoming audit.',
+  'Has prior experience with our ERP, minimal ramp.',
+];
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function pad(n: number, len: number) {
+  return n.toString().padStart(len, '0');
+}
+
+function randomTestData() {
+  const first = pick(FIRST_NAMES);
+  const last = pick(LAST_NAMES);
+  const fullName = `${first} ${last}`;
+  const start = new Date();
+  start.setDate(start.getDate() + 7 + Math.floor(Math.random() * 21));
+  const startDate = start.toISOString().slice(0, 10);
+
+  return {
+    fullName,
+    preferredName: first,
+    employeeNumber: `EMP-${pad(Math.floor(1000 + Math.random() * 9000), 4)}`,
+    badgeNumber: pad(Math.floor(10000 + Math.random() * 90000), 5),
+    jobTitle: pick(TITLES),
+    department: pick(DEPARTMENTS),
+    managerEmail: TEST_MANAGER_EMAIL,
+    managerName: TEST_MANAGER_NAME,
+    startDate,
+    employmentType: 'full_time',
+    workLocation: 'onsite' as const,
+    officeLocation: pick(OFFICES),
+    personalEmail: `${first.toLowerCase()}.${last.toLowerCase().replace(/\W/g, '')}@example.com`,
+    phone: `978-555-${pad(Math.floor(Math.random() * 10000), 4)}`,
+    hrNotes: pick(NOTES),
+    urgency: 'medium' as const,
+  };
+}
+
 export default function NewOnboardingPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const [fullName, setFullName] = useState('');
   const [preferredName, setPreferredName] = useState('');
+  const [employeeNumber, setEmployeeNumber] = useState('');
+  const [badgeNumber, setBadgeNumber] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [department, setDepartment] = useState('');
   const [managerEmail, setManagerEmail] = useState('');
@@ -25,6 +78,36 @@ export default function NewOnboardingPage() {
   const [phone, setPhone] = useState('');
   const [hrNotes, setHrNotes] = useState('');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high' | 'critical'>('medium');
+
+  const isTest = !!user?.is_test;
+  const autofilledRef = useRef(false);
+
+  function applyTestData() {
+    const d = randomTestData();
+    setFullName(d.fullName);
+    setPreferredName(d.preferredName);
+    setEmployeeNumber(d.employeeNumber);
+    setBadgeNumber(d.badgeNumber);
+    setJobTitle(d.jobTitle);
+    setDepartment(d.department);
+    setManagerEmail(d.managerEmail);
+    setManagerName(d.managerName);
+    setStartDate(d.startDate);
+    setEmploymentType(d.employmentType);
+    setWorkLocation(d.workLocation);
+    setOfficeLocation(d.officeLocation);
+    setPersonalEmail(d.personalEmail);
+    setPhone(d.phone);
+    setHrNotes(d.hrNotes);
+    setUrgency(d.urgency);
+  }
+
+  useEffect(() => {
+    if (isTest && !autofilledRef.current) {
+      autofilledRef.current = true;
+      applyTestData();
+    }
+  }, [isTest]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,6 +124,8 @@ export default function NewOnboardingPage() {
       onboarding_details: {
         full_name: fullName,
         preferred_name: preferredName || undefined,
+        employee_number: employeeNumber,
+        badge_number: badgeNumber,
         job_title: jobTitle,
         department,
         manager_email: managerEmail.toLowerCase().trim(),
@@ -77,6 +162,19 @@ export default function NewOnboardingPage() {
         </p>
       </div>
 
+      {isTest && (
+        <div className="card mb-6 flex items-center justify-between gap-3" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <p className="text-sm text-theme-primary">
+            <strong>Test mode.</strong> Fields are pre-filled with random data and the manager
+            defaults to <code>{TEST_MANAGER_EMAIL}</code> so you can flow straight into the
+            manager-review step.
+          </p>
+          <button type="button" onClick={applyTestData} className="btn-secondary whitespace-nowrap">
+            Re-fill random
+          </button>
+        </div>
+      )}
+
       {error && <div className="mb-4 p-3 rounded-lg text-sm font-semibold" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -87,6 +185,14 @@ export default function NewOnboardingPage() {
             </Field>
             <Field label="Preferred / display name">
               <input className="input-field" value={preferredName} onChange={(e) => setPreferredName(e.target.value)} />
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Employee number *" required>
+              <input className="input-field" value={employeeNumber} onChange={(e) => setEmployeeNumber(e.target.value)} required placeholder="e.g., EMP-1234" />
+            </Field>
+            <Field label="Badge number *" required>
+              <input className="input-field" value={badgeNumber} onChange={(e) => setBadgeNumber(e.target.value)} required placeholder="e.g., 10293" />
             </Field>
           </Row>
           <Row>

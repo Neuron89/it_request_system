@@ -61,7 +61,7 @@ function SsoHandler() {
         <>
           <p style={{ color: '#ef4444', fontWeight: 600 }}>Sign-in failed</p>
           <p style={{ fontSize: '0.875rem', color: '#64748b' }}>{error}</p>
-          <a href="/login" style={{ color: '#3b82f6' }}>Use password login</a>
+          <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Return to the NYCOA Portal and click the IT Requests tile again.</p>
         </>
       ) : (
         <p>Signing you in via the portal…</p>

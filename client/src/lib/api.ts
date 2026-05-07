@@ -54,6 +54,17 @@ export async function getTestUsers() {
   return fetchApi<{ email: string; name: string; role: string }[]>('/auth/test-users');
 }
 
+export async function getTestRoles() {
+  return fetchApi<{ email: string; name: string; role: string }[]>('/auth/test-roles');
+}
+
+export async function testLogin(role: string) {
+  return fetchApi<{ user: any; tokens: { accessToken: string; refreshToken: string } }>(
+    '/auth/test-login',
+    { method: 'POST', body: JSON.stringify({ role }) }
+  );
+}
+
 // Tickets
 export async function createTicket(token: string, data: any) {
   return fetchApi<any>('/tickets', { method: 'POST', body: JSON.stringify(data), token });
@@ -90,6 +101,13 @@ export async function updateTicketStatus(token: string, id: number, data: { stat
 
 export async function cancelTicket(token: string, id: number) {
   return fetchApi<any>(`/tickets/${id}/cancel`, { method: 'POST', token });
+}
+
+export async function deleteTicket(token: string, id: number) {
+  return fetchApi<{ message: string; id: number }>(`/tickets/${id}`, {
+    method: 'DELETE',
+    token,
+  });
 }
 
 export async function addComment(token: string, id: number, comment: string, isInternal = false) {

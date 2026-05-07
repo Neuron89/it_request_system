@@ -12,6 +12,7 @@ interface User {
   manager_id: number | null;
   manager_name: string;
   manager_email: string;
+  is_test?: boolean;
 }
 
 interface AuthContextType {

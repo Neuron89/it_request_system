@@ -129,6 +129,8 @@ export interface OnboardingTicket extends BaseTicket {
 export interface OnboardingDetails {
   full_name: string;
   preferred_name?: string;
+  employee_number: string;
+  badge_number: string;
   job_title: string;
   department: string;
   manager_email: string;

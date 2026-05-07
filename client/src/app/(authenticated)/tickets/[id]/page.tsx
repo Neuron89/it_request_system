@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import {
-  getTicket, managerReview, itReview, updateTicket, cancelTicket, addComment,
+  getTicket, managerReview, itReview, updateTicket, cancelTicket, deleteTicket, addComment,
   getCategories, getAssignableUsers, submitOnboardingDetails,
 } from '@/lib/api';
 import { STATUS_LABELS, STATUS_COLORS, REQUEST_STATUSES } from '@itr/shared';
@@ -63,6 +63,17 @@ export default function TicketDetailPage() {
     if (!token || !id || !confirm('Cancel this ticket?')) return;
     try { await cancelTicket(token, parseInt(id as string)); load(); }
     catch (err: any) { alert(err.message); }
+  }
+  async function handleDelete() {
+    if (!token || !id) return;
+    const num = ticket?.request_number || `#${id}`;
+    if (!confirm(`Delete ticket ${num}? This permanently removes it along with all comments, history, and attachments. This cannot be undone.`)) return;
+    try {
+      await deleteTicket(token, parseInt(id as string));
+      router.replace('/tickets');
+    } catch (err: any) {
+      alert(err.message);
+    }
   }
   async function handleAddComment() {
     if (!token || !id || !commentText.trim()) return;
@@ -216,8 +227,22 @@ export default function TicketDetailPage() {
         </div>
       )}
 
-      {canCancel && (
-        <button onClick={handleCancel} className="btn-danger">Cancel Ticket</button>
+      {(canCancel || isAdmin) && (
+        <div className="flex flex-wrap gap-3">
+          {canCancel && (
+            <button onClick={handleCancel} className="btn-danger">Cancel Ticket</button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={handleDelete}
+              className="btn-danger"
+              style={{ background: '#7f1d1d', borderColor: '#7f1d1d' }}
+              title="Permanently delete this ticket and all related data"
+            >
+              Delete Ticket
+            </button>
+          )}
+        </div>
       )}
 
       {/* Comments */}

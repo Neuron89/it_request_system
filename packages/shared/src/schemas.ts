@@ -55,6 +55,8 @@ export const otherDetailsSchema = z.object({
 export const hrOnboardingIntakeSchema = z.object({
   full_name: z.string().min(1, 'Full name is required'),
   preferred_name: z.string().optional(),
+  employee_number: z.string().min(1, 'Employee number is required'),
+  badge_number: z.string().min(1, 'Badge number is required'),
   job_title: z.string().min(1, 'Job title is required'),
   department: z.string().min(1, 'Department is required'),
   manager_email: z.string().email('Manager email is required'),

@@ -459,6 +459,28 @@ router.post('/:id/cancel', authenticate, async (req: Request, res: Response) => 
   }
 });
 
+// IT-admin only: hard-delete a ticket and its cascading comments/history/
+// attachments (FKs are ON DELETE CASCADE). This is intentionally separate
+// from /cancel — cancel preserves the audit trail; delete wipes it.
+router.delete('/:id', authenticate, authorize('it_admin'), async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(String(req.params.id), 10);
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ message: 'Invalid ticket id' });
+      return;
+    }
+    const deleted = await db('tickets').where({ id }).del();
+    if (!deleted) {
+      res.status(404).json({ message: 'Ticket not found' });
+      return;
+    }
+    res.json({ message: 'Ticket deleted', id });
+  } catch (err) {
+    console.error('Delete ticket error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // Manager fills in onboarding IT requirements (replaces approve/deny for onboarding tickets).
 // Merges the manager's input into the existing onboarding_details JSONB and advances to it_review.
 router.post('/:id/onboarding-details', authenticate, authorize('manager', 'it_admin'), validate(managerOnboardingDetailsSchema), async (req: Request, res: Response) => {

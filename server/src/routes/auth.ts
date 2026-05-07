@@ -24,6 +24,79 @@ function generateTokens(user: { id: number; email: string; name: string; role: s
   return { accessToken, refreshToken };
 }
 
+function testLoginEnabled(): boolean {
+  // Default ON — the test sandbox is the whole point of this feature. Set
+  // ALLOW_TEST_LOGIN=false in .env to lock it down (e.g. for prod hosts).
+  return (process.env.ALLOW_TEST_LOGIN || 'true').toLowerCase() !== 'false';
+}
+
+// GET /api/auth/test-roles — list of seeded test users (for the role
+// buttons on /test-login). Only returns rows flagged is_test=true.
+router.get('/test-roles', async (_req: Request, res: Response) => {
+  if (!testLoginEnabled()) {
+    res.status(403).json({ message: 'Test login is disabled.' });
+    return;
+  }
+  try {
+    const users = await db('users')
+      .where({ is_test: true, is_active: true })
+      .select('email', 'name', 'role')
+      .orderByRaw(`array_position(ARRAY['hr','manager','ehs','it_admin','employee']::text[], role)`);
+    res.json(users);
+  } catch (err) {
+    console.error('Test roles error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// POST /api/auth/test-login — sign in as the seeded test user for the
+// requested role. No password. Always refuses non-test users so this
+// endpoint can never escalate a real account.
+router.post('/test-login', async (req: Request, res: Response) => {
+  if (!testLoginEnabled()) {
+    res.status(403).json({ message: 'Test login is disabled.' });
+    return;
+  }
+  try {
+    const role = String(req.body?.role || '').toLowerCase();
+    if (!role) {
+      res.status(400).json({ message: 'role required' });
+      return;
+    }
+    const user = await db('users').where({ role, is_test: true, is_active: true }).first();
+    if (!user) {
+      res.status(404).json({ message: `No test user seeded for role '${role}'.` });
+      return;
+    }
+    const tokens = generateTokens(user);
+    await db('users').where({ id: user.id }).update({ refresh_token: tokens.refreshToken });
+    const dept = user.department_id
+      ? await db('departments').where({ id: user.department_id }).first()
+      : null;
+    const manager = user.manager_id
+      ? await db('users').where({ id: user.manager_id }).select('id', 'name', 'email').first()
+      : null;
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        department: dept?.name || '',
+        manager_id: user.manager_id,
+        manager_name: manager?.name || '',
+        manager_email: manager?.email || '',
+        is_active: user.is_active,
+        is_test: true,
+      },
+      tokens,
+    });
+  } catch (err) {
+    console.error('Test login error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // POST /api/auth/sso-exchange — verifies a portal-issued SSO token and
 // returns access + refresh tokens, auto-creating the IT Request user row
 // if needed.
@@ -106,7 +179,15 @@ router.post('/sso-exchange', async (req: Request, res: Response) => {
 });
 
 // Login
+//
+// Password sign-in is disabled by default — the IT Request app is meant to
+// be entered only via the NYCOA Portal SSO bridge. Set ALLOW_PASSWORD_LOGIN=true
+// in .env to re-enable the dev/admin fallback.
 router.post('/login', async (req: Request, res: Response) => {
+  if ((process.env.ALLOW_PASSWORD_LOGIN || '').toLowerCase() !== 'true') {
+    res.status(403).json({ message: 'Password login is disabled. Sign in from the NYCOA Portal.' });
+    return;
+  }
   try {
     const { email, password } = req.body;
     const user = await db('users').where({ email, is_active: true }).first();
@@ -204,6 +285,7 @@ router.get('/me', authenticate, async (req: Request, res: Response) => {
       manager_id: user.manager_id,
       manager_name: manager?.name || '',
       manager_email: manager?.email || '',
+      is_test: !!user.is_test,
     });
   } catch (err) {
     console.error('Get me error:', err);
@@ -222,8 +304,13 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
   }
 });
 
-// Get test users (dev only)
+// Get test users (dev only) — gated behind ALLOW_PASSWORD_LOGIN since this
+// list was only useful as a feeder for the password dropdown.
 router.get('/test-users', async (_req: Request, res: Response) => {
+  if ((process.env.ALLOW_PASSWORD_LOGIN || '').toLowerCase() !== 'true') {
+    res.status(403).json({ message: 'Password login is disabled.' });
+    return;
+  }
   try {
     const users = await db('users')
       .select('email', 'name', 'role')
