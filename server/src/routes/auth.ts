@@ -5,21 +5,23 @@ import db from '../db/connection';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+
+// Lazy env reads — see middleware/auth.ts for the systemd/tsx-watch issue.
+function jwtSecret() { return process.env.JWT_SECRET || 'dev-secret'; }
+function jwtRefreshSecret() { return process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret'; }
+function jwtExpiresIn() { return process.env.JWT_EXPIRES_IN || '15m'; }
+function jwtRefreshExpiresIn() { return process.env.JWT_REFRESH_EXPIRES_IN || '7d'; }
 
 function generateTokens(user: { id: number; email: string; name: string; role: string }) {
   const accessToken = jwt.sign(
     { id: user.id, email: user.email, name: user.name, role: user.role },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    jwtSecret(),
+    { expiresIn: jwtExpiresIn() as any }
   );
   const refreshToken = jwt.sign(
     { id: user.id },
-    JWT_REFRESH_SECRET,
-    { expiresIn: JWT_REFRESH_EXPIRES_IN }
+    jwtRefreshSecret(),
+    { expiresIn: jwtRefreshExpiresIn() as any }
   );
   return { accessToken, refreshToken };
 }
@@ -244,7 +246,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
       return;
     }
 
-    const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { id: number };
+    const payload = jwt.verify(refreshToken, jwtRefreshSecret()) as { id: number };
     const user = await db('users').where({ id: payload.id, refresh_token: refreshToken, is_active: true }).first();
     if (!user) {
       res.status(401).json({ message: 'Invalid refresh token' });

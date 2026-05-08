@@ -1,5 +1,10 @@
+// Anchor .env to this file's directory rather than process.cwd(). Under
+// systemd the working directory is the workspace root, not the server dir,
+// so `dotenv.config()` was a no-op and JWT_SECRET silently fell back to
+// 'dev-secret'. __dirname-relative loading guarantees the right file.
+import path from 'path';
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import express from 'express';
 import cors from 'cors';

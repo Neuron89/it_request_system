@@ -17,7 +17,13 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+// Read JWT_SECRET lazily — see complaint-tracker commit ec6f405 for context.
+// tsx-watch + systemd workspace-root cwd causes module-load reads to see
+// undefined and silently fall back to 'dev-secret'.
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET || 'dev-secret';
+}
+export { getJwtSecret };
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
@@ -28,7 +34,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as AuthUser;
+    const payload = jwt.verify(token, getJwtSecret()) as AuthUser;
     req.user = payload;
     next();
   } catch {
